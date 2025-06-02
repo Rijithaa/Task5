@@ -1,0 +1,104 @@
+#importing the neccesary
+
+# Step 0: Imports and Data Loading
+import pandas as pd
+import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.tree import DecisionTreeClassifier, plot_tree, export_graphviz
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+
+# Load Iris Dataset
+iris = load_iris()
+X = iris.data
+y = iris.target
+feature_names = iris.feature_names
+target_names = iris.target_names
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+
+# 1.Train a Decision tree classifier and visualize the tree
+dt = DecisionTreeClassifier(random_state=42)
+dt.fit(X_train, y_train)
+
+
+plt.figure(figsize=(12, 8))
+plot_tree(dt, feature_names=feature_names, class_names=target_names, filled=True)
+plt.title("Decision Tree")
+plt.show()
+
+#use of Graphviz
+from sklearn.tree import export_graphviz
+import graphviz
+
+dot_data = export_graphviz(dt, out_file=None,
+                           feature_names=feature_names,
+                           class_names=target_names,
+                           filled=True, rounded=True,
+                           special_characters=True)
+graph = graphviz.Source(dot_data)
+graph.render("iris_tree", format='png', cleanup=True)
+graph
+
+# 2.Analyze overfitting and control tree depth
+train_acc = accuracy_score(y_train, dt.predict(X_train))
+test_acc = accuracy_score(y_test, dt.predict(X_test))
+print(f"Train Accuracy (no depth limit): {train_acc:.2f}")
+print(f"Test Accuracy (no depth limit): {test_acc:.2f}")
+
+# Limit tree depth
+dt_pruned = DecisionTreeClassifier(max_depth=3, random_state=42)
+dt_pruned.fit(X_train, y_train)
+
+train_acc_pruned = accuracy_score(y_train, dt_pruned.predict(X_train))
+test_acc_pruned = accuracy_score(y_test, dt_pruned.predict(X_test))
+print(f"Train Accuracy (max_depth=3): {train_acc_pruned:.2f}")
+print(f"Test Accuracy (max_depth=3): {test_acc_pruned:.2f}")
+
+output:
+Train Accuracy (no depth limit): 1.00
+Test Accuracy (no depth limit): 1.00
+Train Accuracy (max_depth=3): 0.95
+Test Accuracy (max_depth=3): 1.00
+
+# 3.Train a random forest and compare accuracy
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+
+rf_train_acc = accuracy_score(y_train, rf.predict(X_train))
+rf_test_acc = accuracy_score(y_test, rf.predict(X_test))
+print(f"Random Forest Train Accuracy: {rf_train_acc:.2f}")
+print(f"Random Forest Test Accuracy: {rf_test_acc:.2f}")
+
+output:
+Random Forest Train Accuracy: 1.00
+Random Forest Test Accuracy: 1.00
+
+#4. Interpret feature importance
+
+importances = rf.feature_importances_
+forest_importances = pd.Series(importances, index=feature_names)
+
+# Plotting
+forest_importances.sort_values().plot(kind='barh')
+plt.title("Feature Importances (Random Forest)")
+plt.xlabel("Importance Score")
+plt.show()
+
+#5. Evaluate using cross-validation
+# Cross-validation for Decision Tree
+dt_scores = cross_val_score(dt_pruned, X, y, cv=5)
+print(f"Decision Tree CV Accuracy: {dt_scores.mean():.2f} ± {dt_scores.std():.2f}")
+
+# Cross-validation for Random Forest
+rf_scores = cross_val_score(rf, X, y, cv=5)
+print(f"Random Forest CV Accuracy: {rf_scores.mean():.2f} ± {rf_scores.std():.2f}")
+
+
+output:
+Decision Tree CV Accuracy: 0.97 ± 0.02
+Random Forest CV Accuracy: 0.97 ± 0.02
